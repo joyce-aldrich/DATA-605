@@ -1,0 +1,458 @@
+---
+title: "JAldrich_Final"
+author: "Joyce Aldrich"
+date: "2023-12-14"
+output:
+  pdf_document:
+    latex_engine: xelatex
+header-includes:
+  - \usepackage{fontspec}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+#Problem 1. 
+
+## Using R, set a random seed equal to 1234 (i.e., set.seed(1234)). Generate a random variable X that has 10,000 continuous random uniform values between 5 and 15.Then generate a random variable Y that has 10,000 random normal values with a mean of 10 and a standard deviation of 2.89.
+
+```{r}
+# Set the random seed as request 
+set.seed(1234)
+
+# Generate random variable X with continuous uniform values between 5 and 15
+X <- runif(10000, min = 5, max = 15)
+
+# Generate random variable Y with normal values with a mean of 10 and std of 2.89
+Y <- rnorm(10000, mean = 10, sd = 2.89)
+
+```
+
+```{r}
+hist(X)
+```
+
+```{r}
+hist(Y)
+```
+
+## Calculate as a minimum the below probabilities a through c. Assume the small letter "x" is estimated as the median of the X variable, and the small letter "y" is estimated as the median of the Y variable. Interpret the meaning of all probabilities.
+
+```{r}
+x <- median(X)
+y <- median(Y)
+
+x
+y
+```
+
+a.  P(X\>x \|X\>y) : the conditional probability that X varible is greater than its median (x), given that X value is greater than Y variable's median (y).
+
+$P(X>x|X>y) = \frac{P(X>x \cap X>y)}{P(X>y)}$
+
+```{r}
+conditional_prob_a <- sum(X > max(x, y)) / sum(X > y)
+
+print(conditional_prob_a)
+```
+
+b.  P(X\>x & Y\>y) : the joint probability that X variable is greater than its median (x) and Y variable is greater than its median (y)
+
+```{r}
+joint_prob_b <- sum(X > x & Y > y) / length(X)
+
+print(joint_prob_b)
+
+```
+
+c.  P(X\<x \| X\>y) :the conditional probability that X varible is less than its median (x), given that X value is greater than Y variable's median (y).
+
+$P(X<x|X>y) = \frac{P(X<x \cap X>y)}{P(X>y)}$
+
+```{r}
+conditional_prob_c <- mean(X < x & X > y)
+
+print(conditional_prob_c)
+```
+
+## Investigate whether P(X\>x & Y\>y)=P(X\>x)P(Y\>y) by building a table and evaluating the marginal and joint probabilities.
+
+```{r}
+library(data.table)
+
+# Assuming X and Y are vectors or variables, and x, y are threshold values
+Prob_X_x <- sum(X > x) / length(X)
+Prob_Y_y <- sum(Y > y) / length(Y)
+Prob_XY_x_y <- sum(X > x & Y > y) / length(X)
+
+DT <- data.table(
+  ID = c("P(X>x)", "P(Y>y)", "P(X>x)*P(Y>y)", "P((X>x) & (Y>y))"),
+  X_x = c(Prob_X_x, Prob_Y_y, Prob_X_x * Prob_Y_y, Prob_XY_x_y),
+  Y_y = c(Prob_Y_y, Prob_X_x, Prob_X_x * Prob_Y_y, Prob_XY_x_y)
+)
+
+DT
+```
+
+
+The probability of the X value exceeding x and the Y value exceeding y is currently estimated at 0.2507. With a larger dataset, this value would likely converge toward 0.25. The calculation is derived from multiplying the individual probabilities, where P(X>x) = 0.5 and P(Y>y) = 0.5, resulting in 0.25 as the expected joint probability.
+
+## Check to see if independence holds by using Fisher's Exact Test and the Chi Square Test. What is the difference between the two? Which is most appropriate? Are you surprised at the results? Why or why not?
+
+```{r}
+# Create a contingency table
+contingency_table <- table(X > x, Y > y)
+
+```
+
+```{r}
+# Perform Fisher's Exact Test
+fisher.test(contingency_table)
+
+# Perform Chi-Square Test
+chisq.test(contingency_table)
+
+```
+
+Noticed that the Fisher's Exact test and the Chi-Square test are both used for testing the association between two categorical variables. However, they have different assumptions and are applicable in different scenarios. If dealing with a small sample size, Fisher's Exact Test is often preferred. For a large sample size, the Chi-square test is more practical and provides a good approximation. Noticed that both tests produce p-values which determine whether to reject the null hypothesis or not. If the p-value is less than 0.05, we usually reject the null hypothesis.
+
+Based on the results of both tests above, the p-values and confidence intervals are the same for both tests. The p-values are above 0.05, which fails to reject the null hypothesis in these two tests, indicating that there is no statistically significant association between these two variables.
+
+Because of the sample size and the assumptions of the tests being met, the Chi-square may be a reasonable choice for this scenario
+
+#Problem 2.
+
+## You are to register for Kaggle.com (free) and compete in the Regression with a Crab Age Dataset competition. <https://www.kaggle.com/competitions/playground-series-s3e16> I want you to do the following.
+
+```{r}
+# loading the library
+library(readr)
+
+#import the data
+data <- read_csv("https://raw.githubusercontent.com/joyce-aldrich/DATA-605/main/train.csv")
+
+```
+
+## Descriptive and Inferential Statistics. Provide univariate descriptive statistics and appropriate plots for the training data set. Provide a scatterplot matrix for at least two of the independent variables and the dependent variable. Derive a correlation matrix for any three quantitative variables in the dataset.
+
+```{r}
+# univariate descriptive statistics 
+summary(data)
+```
+
+```{r}
+library(ggplot2)
+library(purrr)
+library(tidyr)
+
+# appropriate plots for the training data set
+data %>%
+  keep(is.numeric) %>%                     
+  gather() %>%                             
+  ggplot(aes(value)) +                    
+    facet_wrap(~ key, scales = "free") +   
+    geom_histogram()                         
+```
+
+```{r}
+#Provide a scatterplot matrix for at least two of the independent variables and the dependent variable.
+
+# Age vs Length
+ggplot(data, aes(x=Age, y=Length)) + 
+    geom_point()+
+     ggtitle("Scatterplot of Age vs Length")
+
+```
+
+```{r}
+# Age vs Weight
+ggplot(data, aes(x=Age, y=Weight)) + 
+    geom_point() +
+    ggtitle("Scatterplot of Age vs Weight")
+```
+
+```{r}
+# Age vs Diameter
+ggplot(data, aes(x=Age, y=Diameter)) + 
+    geom_point() +
+    ggtitle("Scatterplot of Age vs Diameter")
+```
+### Derive a correlation matrix for any three quantitative variables in the dataset.  
+
+```{r}
+# Create the correlation matrix
+corr_matrix <- cor(data [,c("Length","Weight","Diameter")])
+
+print(corr_matrix)
+```
+
+The correlation matrix shows that the pairwise correlations between Lenghth, Weight, and Diameter. The values range from -1 to 1, where 1 indicates a perfect positive correlation, -1 indicates a perfect negative correlation, and 0 indicates no correlation. The correlation matrix helps us understand the strength and direction of the relationships between variables.
+
+Based on the output above, all the correlation coefficients are positive, indicating positive linear relationships between the variables. The strength of these relationships varies, with Length and Diameter having an exceptionally strong correlation, followed by Length and Weight, and Weight and Diameter.
+
+### Test the hypotheses that the correlations between each pairwise set of variables is 0 and provide an 80% confidence interval. Discuss the meaning of your analysis. Would you be worried about familywise error? Why or why not?
+
+```{r}
+#Correlation Tests
+test_length_weight <- cor.test(data$Length, data$Weight, conf.level = 0.80)
+test_length_diameter <- cor.test(data$Length, data$Diameter, conf.level = 0.80)
+test_weight_diameter <- cor.test(data$Weight, data$Diameter, conf.level = 0.80)
+```
+
+```{r}
+test_length_weight
+```
+
+```{r}
+test_length_diameter
+```
+
+```{r}
+test_weight_diameter
+```
+
+Per the test results between these three variables-Length, Weight, and Diameter, the p-values of these three testing results are extremely small which means we can reject null hypothesis that the true correlation is equal to zero. The 80% confidence intervals provide a range of plausible values for the true correlation. The narrow intervals further support the strength and precision of the observed correlations.
+
+We conducted only three tests, and all of them came out extremely very low p-values. The probability of all three results being false positives (Type I errors) is extremely unlikely. While it's important to be mindful of familywise errors, this wound not be in this particular situation.
+
+## Linear Algebra and Correlation. Invert your correlation matrix from above. (This is known as the precision matrix and contains variance inflation factors on the diagonal.) Multiply the correlation matrix by the precision matrix, and then multiply the precision matrix by the correlation matrix. Conduct LDU decomposition on the matrix.
+
+```{r}
+# Invert your correlation matrix from above
+precision_matrix <- solve(corr_matrix)
+precision_matrix
+```
+```{r}
+# Multiply the correlation matrix by the precision matrix
+
+corr_multi_pre <- corr_matrix %*% precision_matrix
+corr_multi_pre
+```
+
+```{r}
+# multiply the precision matrix by the correlation matrix.
+
+pre_multi_corr <- precision_matrix %*% corr_matrix
+pre_multi_corr
+
+```
+
+```{r}
+#Conduct LDU decomposition on the matrix
+#install.packages("matrixcalc")
+library(matrixcalc)
+
+lu.decomposition(corr_matrix)
+```
+
+## Calculus-Based Probability & Statistics.  Many times, it makes sense to fit a closed form distribution to data.  Select a variable in the Kaggle.com training dataset that is skewed to the right, shift it so that the minimum value is absolutely above zero if necessary.  Then load the MASS package and run fitdistr to fit an exponential probability density function.  (See  https://stat.ethz.ch/R-manual/R-devel/library/MASS/html/fitdistr.html ).  Find the optimal value of λ for this distribution, and then take 1000 samples from this exponential distribution using this value (e.g., rexp(1000, λ)).  Plot a histogram and compare it with a histogram of your original variable.   Using the exponential pdf, find the 5th and 95th percentiles using the cumulative distribution function (CDF).   Also generate a 95% confidence interval from the empirical data, assuming normality.  Finally, provide the empirical 5th percentile and 95th percentile of the data.  Discuss.
+
+
+```{r}
+#install.packages("MASS")
+library(MASS)
+```
+
+Per our earlier histograms for the training data set, noticed that variable- Shell weight, Shucked Weight, Viscera Weight and Weight are right skewed. I would like to use a variable- shell weight as example in this section.  
+
+```{r}
+#install.packages("moments")
+library(moments)
+
+# Check skewness of the variable
+skewness_shell_weight <- skewness(data$`Shell Weight`)
+skewness_shucked_weight <- skewness(data$`Shucked Weight`)
+skewness_viscera_weight <- skewness(data$`Viscera Weight`)
+skewness_weight <- skewness(data$`Weight`)
+
+skewness_shell_weight
+skewness_shucked_weight
+skewness_viscera_weight
+skewness_weight
+```
+Based on the above outputs, a variavble - shucked weight is a right-skewed and a positive skewness value, and the largest value (0.3494646) indicates the most right-skewed distribution among the options.
+
+```{r}
+data %>% ggplot(aes(x = `Shucked Weight`)) +
+  geom_histogram()
+```
+
+
+```{r}
+# Check Shift the variable if necessary
+min_value <- min(data$`Shucked Weight`)
+
+min_value
+```
+
+```{r}
+# run fitdistr function to fit an exponential probability density function
+fit_expo_pd <- fitdistr(data$`Shucked Weight`, "exponential")
+
+# the optimal value of \lambda
+lambda <- fit_expo_pd$estimate
+
+```
+
+```{r}
+# Generate 1000 samples from the exponential distribution
+expo_shucked_pdf <- rexp(1000, lambda)
+```
+
+
+```{r}
+# Plot histograms
+par(mfrow = c(1, 2))
+hist(data$`Shucked Weight`, main = "Original Variable: Shucked Weight", xlab = "Shucked Weight")
+hist(expo_shucked_pdf, main = "Exponential Distribution", xlab = "Samples")
+
+```
+
+Noticed that the histograms above are differences. In addition, the actual exponential distribution is heavily concentrated on the left and displays significant right-skewness. The count decreases rapidly initially and then slows down.
+
+
+Using the exponential pdf, find the 5th and 95th percentiles using the cumulative distribution function (CDF)
+
+```{r}
+# using the exponential pdf, find the 5th and 95th percentiles 
+percentile_5_expo= qexp(0.05, rate = lambda)
+percentile_95_expo = qexp(0.95, rate = lambda)
+
+percentile_5_expo
+percentile_95_expo
+```
+
+
+To generate a 95% confidence interval from the empirical data, assuming normality -> by using the t.test function.
+
+```{r}
+# Calculate the confidence interval assuming normality
+confidence_interval <- t.test(data$`Shucked Weight`)
+confidence_interval
+
+```
+
+```{r}
+# Calculate empirical percentiles
+empirical_5th <- quantile(data$`Shucked Weight`, 0.05)
+empirical_95th <- quantile(data$`Shucked Weight`, 0.95)
+
+empirical_5th
+empirical_95th
+```
+Conculsion: 
+Based on the above result, the 95% confidence interval from the empirical data is 10.06381 to 10.14473. Per the above outputs of the 5th and 95th percentile of the distribution, it's approximately 0.5183 and 30.2697. For the empirical percentiles (quantiles) are calculated directly from the dataset, the empirical 5th percentile of Shucked Weight is approximately 1.5025, and the empirical 95th percentile is around 19.3769. Noticed that the empirical percentiles closely match the exponential distribution percentiles, it suggests that the data may be consistent with an exponential distribution.
+
+
+## Build some type of multiple regression  model and submit your model to the competition board.  Provide your complete model summary and results with analysis.  Report your Kaggle.com user name and score.
+
+```{r}
+library(dplyr)
+
+# create a data_new by removing "id" variable from data 
+data_new <- subset(data, select = -id)
+
+model_1 <- data_new %>%
+  lm(Age ~ Sex+Length +Diameter + Height + Weight + `Shucked Weight`+`Viscera Weight`+`Shell Weight`, data = .)
+
+summary(model_1)
+
+plot(model_1)
+```
+The R-squared value of 0.5508 indicates that the model explains about 55.08% of the variance in the dependent variable 'Age.' This means that the model captures a moderate amount of the variability in 'Age' based on the chosen independent variables in the model. In addition, the low p-values associated with each variable suggest that all the variables in the model are statistically significant. Specifically, variables like 'Sex', 'Length', 'Diameter' and so on all have p-values close to zero in the model summary above. 
+
+
+Build a regression model from a set of predictor variables by entering and removing predictors in a stepwise manner until there is no statistically valid reason to enter or remove any more.
+
+The goal of stepwise regression is to construct a model that incorporates all predictor variables that are statistically significantly related to the response variable.
+
+I would like to use stepwise regression to confirm that the initiated model is reasonable.
+
+There are three ways to perform stepwise regression: Forward Stepwise Selection, Backward Stepwise Selection, and Both-Direction Stepwise Selection.
+
+### Forward Stepwise Selection
+```{r}
+null <- lm(Age ~ 1, data = data_new)  
+full <- lm(Age ~ ., data = data_new) 
+
+
+forward.lm <- step(null, 
+                  scope=list(lower=null, upper=full), 
+                  direction="forward")
+
+```
+
+```{r}
+summary(forward.lm)
+```
+
+Overall, all the variables in the model are statistically significant. None of them has been dropped, as indicated by the values in the AIC (Akaike Information Criterion) column. AIC is a measure of the relative quality of statistical models, where lower values indicate better-fitting models. Notably, the AIC value decreases when additional variables are added.
+
+
+### Backward stepwsie regression
+```{r}
+
+backward.lm <- step(full, 
+                   scope = list(upper=full), 
+                   direction="backward")  
+
+```
+```{r}
+summary(backward.lm)
+```
+The outcome is the same as Forward Stepwise Selection.
+
+### Both-Direction Stepwise Selection.
+
+```{r}
+
+step(null, scope = list(upper=full), direction="both")
+
+step(full, scope = list(upper=full), direction="both")  
+```
+
+Conclusion: The results of these three ways to perform stepwise regression are confirmed the initiated model is reasonable and all variables are statistically significant in the model.
+
+### Model selection and its result
+```{r}
+#import the data
+test <- read_csv("https://raw.githubusercontent.com/joyce-aldrich/DATA-605/main/test.csv")
+
+```
+
+```{r}
+# Use the model to make predictions on the test data
+predictions_age <- predict(model_1, newdata = test)
+
+```
+
+```{r}
+id <- test$id
+id <- as.integer(id)
+```
+
+```{r}
+# Combine the data frames using cbind
+
+submission <- data.frame(id, predictions_age)
+
+#colnames(submission)[1] <- "id"
+colnames(submission)[2] <- "Age"
+
+
+head(submission)
+
+
+```
+### Kaggle.com User name and Score.
+```{r}
+# Write the predicted Age of Result to a csv file for submission to the Kaggle.com.
+write.csv(submission, file = "jaldrich_prediction.csv", row.names = FALSE)
+```
+
+The resulting score from this model is Private score: 1.48236 and Public Score: 1.48539. (User name: Joyce Aldrich)
+
+The link of submission on Kaggle.com is below: https://www.kaggle.com/competitions/playground-series-s3e16/submissions
